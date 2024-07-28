@@ -8,7 +8,7 @@ metadata:
   name: axonopscassandra-viewer-role
 rules:
 - apiGroups:
-  - cassandra.axonops.com.axonops.com
+  - cassandra.axonops.com
   resources:
   - axonopscassandras
   verbs:
@@ -16,7 +16,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - cassandra.axonops.com.axonops.com
+  - cassandra.axonops.com
   resources:
   - axonopscassandras/status
   verbs:

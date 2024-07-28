@@ -1,4 +1,4 @@
-apiVersion: cassandra.axonops.com.axonops.com/v1beta1
+apiVersion: cassandra.axonops.com/v1beta1
 kind: AxonOpsCassandra
 metadata:
   labels:

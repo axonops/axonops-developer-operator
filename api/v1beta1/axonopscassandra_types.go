@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	networking "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,13 +33,15 @@ type ContainerImage struct {
 
 // AxonOpsCassandraCluster defines the Apache Cassandra cluster to install
 type AxonOpsCassandraCluster struct {
-	Image ContainerImage `json:"image,omitempty"`
+	Image            ContainerImage       `json:"image,omitempty"`
+	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
 }
 
 // AxonOpsDashboard defines the dashboard
 type AxonOpsDashboard struct {
-	Image    ContainerImage `json:"image,omitempty"`
-	Replicas int            `json:"replicas,omitempty"`
+	Image    ContainerImage         `json:"image,omitempty"`
+	Replicas int                    `json:"replicas,omitempty"`
+	Ingress  networking.IngressSpec `json:"ingress,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
