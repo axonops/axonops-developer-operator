@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- cassandra.axonops.com_v1beta1_axonopscassandra.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

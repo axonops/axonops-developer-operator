@@ -1,0 +1,23 @@
+# permissions for end users to view axonopscassandras.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: axonops-developer-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: axonopscassandra-viewer-role
+rules:
+- apiGroups:
+  - cassandra.axonops.com.axonops.com
+  resources:
+  - axonopscassandras
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - cassandra.axonops.com.axonops.com
+  resources:
+  - axonopscassandras/status
+  verbs:
+  - get
