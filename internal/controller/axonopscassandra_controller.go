@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/axonops/axonops-developer-operator/apps"
@@ -78,37 +79,36 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 		}
 	} else {
+		statefulSetList := []string{
+			"es-" + thisClusterName,
+			"ca-" + thisClusterName,
+			"as-" + thisClusterName,
+		}
+		deploymentsList := []string{
+			"ds-" + thisClusterName,
+		}
+
 		// The object is being deleted
 		if utils.ContainsString(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
-			if err := r.deleteSts("es-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if err := r.deleteSvc("es-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if err := r.deleteDeployment("ds-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if err := r.deleteSvc("ds-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
+			for sts := range statefulSetList {
+				if err := r.deleteSts(statefulSetList[sts], thisClusterNamespace); err != nil {
+					return ctrl.Result{}, client.IgnoreNotFound(err)
+				}
+				if err := r.deleteSvc(statefulSetList[sts], thisClusterNamespace); err != nil {
+					return ctrl.Result{}, client.IgnoreNotFound(err)
+				}
 			}
 
-			/* Delete AxonServer */
-			if err := r.deleteSts("as-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if err := r.deleteSvc("as-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
+			for d := range deploymentsList {
+				if err := r.deleteDeployment(deploymentsList[d], thisClusterNamespace); err != nil {
+					return ctrl.Result{}, client.IgnoreNotFound(err)
+				}
+				if err := r.deleteSvc(deploymentsList[d], thisClusterNamespace); err != nil {
+					return ctrl.Result{}, client.IgnoreNotFound(err)
+				}
 			}
 
-			/* Delete Cassandra */
-			if err := r.deleteSts("ca-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
-			if err := r.deleteSvc("ca-"+axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace()); err != nil {
-				return ctrl.Result{}, client.IgnoreNotFound(err)
-			}
 			// remove our finalizer from the list and update it.
 			axonopsCassCluster.SetFinalizers(utils.RemoveString(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName))
 			if err := r.Update(context.Background(), &axonopsCassCluster); err != nil {
@@ -131,6 +131,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	var elasticStatefulSet *appsv1.StatefulSet
 	elasticStatefulSet, err = r.getSts("es-"+thisClusterName, thisClusterNamespace)
+	fmt.Println(thisClusterName)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
@@ -339,7 +340,7 @@ func (r *AxonOpsCassandraReconciler) getService(name string, namespace string) (
 
 	err := r.Get(r.Ctx, client.ObjectKey{
 		Namespace: namespace,
-		Name:      "es-" + name,
+		Name:      name,
 	}, &svc)
 	if err != nil {
 		return nil, err

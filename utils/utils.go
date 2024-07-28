@@ -170,3 +170,10 @@ func ValueOrDefault(value, defaultValue string) string {
 	}
 	return value
 }
+
+func ValueOrDefaultInt(value, defaultValue int) int {
+	if value <= 0 {
+		return defaultValue
+	}
+	return value
+}

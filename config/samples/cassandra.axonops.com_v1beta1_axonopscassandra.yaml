@@ -5,5 +5,8 @@ metadata:
     app.kubernetes.io/name: axonops-developer-operator
     app.kubernetes.io/managed-by: kustomize
   name: axonopscassandra-sample
+  namespace: axonops-dev
 spec:
-  # TODO(user): Add fields here
+  cassandra:
+    replicas: 3
+    clusterName: "my-dev-env"

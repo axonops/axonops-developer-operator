@@ -34,6 +34,8 @@ type ContainerImage struct {
 // AxonOpsCassandraCluster defines the Apache Cassandra cluster to install
 type AxonOpsCassandraCluster struct {
 	Image            ContainerImage       `json:"image,omitempty"`
+	Replicas         int                  `json:"replicas,omitempty"`
+	ClusterName      string               `json:"clusterName,omitempty"`
 	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
 }
 

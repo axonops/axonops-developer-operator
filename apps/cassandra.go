@@ -18,6 +18,31 @@ import (
 const defaultCassandraImage = "registry.axonops.com/axonops-public/axonops-docker/cassandra"
 const defaultCassandraTag = "4.1"
 
+const cassandraHeadlessServiceTemplate = `
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca-{{ .Name }}-headless
+  namespace: {{ .Namespace }}
+spec:
+  publishNotReadyAddresses: true
+  clusterIP: None
+  selector:
+    app: ca-{{ .Name }}
+  ports:
+    - name: intra
+      port: 7000
+      targetPort: intra
+    - name: tls
+      port: 7001
+      targetPort: tls
+    - name: jmx
+      port: 7199
+      targetPort: jmx
+    - name: cql
+      port: 9042
+      targetPort: cql
+`
 const cassandraServiceTemplate = `
 apiVersion: v1
 kind: Service
@@ -75,7 +100,7 @@ spec:
         - name: CASSANDRA_CLUSTER_NAME
           value: {{ .ClusterName }}
         - name: CASSANDRA_SEEDS
-          value: ca-{{ .Name }}-0
+          value: ca-{{ .Name }}-0.ca-{{ .Name }}.{{ .Namespace }}.svc.cluster.local
         - name: CASSANDRA_ENDPOINT_SNITCH
           value: GossipingPropertyFileSnitch
         - name: CASSANDRA_DC
@@ -200,12 +225,12 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 	config := CassandraConfig{
 		Name:      cfg.GetName(),
 		Namespace: cfg.GetNamespace(),
-		Replicas:  1,
+		Replicas:  utils.ValueOrDefaultInt(cfg.Spec.Cassandra.Replicas, 1),
 		Image: fmt.Sprintf("%s:%s",
 			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Repository, defaultCassandraImage),
 			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Tag, defaultCassandraTag),
 		),
-		ClusterName:   cfg.GetName(),
+		ClusterName:   utils.ValueOrDefault(cfg.Spec.Cassandra.ClusterName, cfg.GetName()),
 		JavaOpts:      "-Xms512m -Xmx512m",
 		CpuLimit:      "1000m",
 		MemoryLimit:   "2Gi",
@@ -250,6 +275,37 @@ func GenerateCassandraServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassan
 	svc := &corev1.Service{}
 	b := bytes.NewBuffer(nil)
 	tmpl, err := template.New("cassandra").Funcs(sprig.FuncMap()).Parse(cassandraServiceTemplate)
+	if err != nil {
+		return svc, err
+	}
+
+	err = tmpl.Execute(b, config)
+	if err != nil {
+		return svc, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	es := yaml.NewYAMLOrJSONDecoder(b, 500)
+	if err := es.Decode(obj); err != nil {
+		return svc, err
+	}
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, svc)
+	if err != nil {
+		return svc, err
+	}
+	return svc, nil
+}
+
+func GenerateCassandraHeadlessServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
+	config := CassandraServiceConfig{
+		Name:      cfg.GetName(),
+		Namespace: cfg.GetNamespace(),
+	}
+
+	svc := &corev1.Service{}
+	b := bytes.NewBuffer(nil)
+	tmpl, err := template.New("cassandra").Funcs(sprig.FuncMap()).Parse(cassandraHeadlessServiceTemplate)
 	if err != nil {
 		return svc, err
 	}

@@ -360,6 +360,8 @@ spec:
                   INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                   Important: Run "make" to regenerate code after modifying this file
                 properties:
+                  clusterName:
+                    type: string
                   image:
                     properties:
                       repository:
@@ -374,6 +376,8 @@ spec:
                       storageClass:
                         type: string
                     type: object
+                  replicas:
+                    type: integer
                 type: object
             type: object
           status:
