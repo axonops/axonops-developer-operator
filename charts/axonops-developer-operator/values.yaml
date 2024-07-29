@@ -25,14 +25,6 @@ manageCrds: true
 # which may not be desired on secure environments
 enableDbSecrets: true
 
-prometheusRules:
-  enabled: false
-  ## Additional labels for PrometheusRule alerts
-  additionalRuleLabels: {}
-
-  ## Additional annotations for PrometheusRule alerts
-  additionalRuleAnnotations: {}
-
 # additional arguments to operator
 args: []
 
