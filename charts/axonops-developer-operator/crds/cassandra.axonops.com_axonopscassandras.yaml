@@ -1,0 +1,198 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  name: axonopscassandras.cassandra.axonops.com
+spec:
+  group: cassandra.axonops.com
+  names:
+    kind: AxonOpsCassandra
+    listKind: AxonOpsCassandraList
+    plural: axonopscassandras
+    singular: axonopscassandra
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: AxonOpsCassandra is the Schema for the axonopscassandras API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AxonOpsCassandraSpec defines the desired state of AxonOpsCassandra
+            properties:
+              axonops:
+                description: AxonOpsCassandraCluster defines the Apache Cassandra
+                  cluster to install
+                properties:
+                  dashboard:
+                    description: AxonOpsDashboard defines the dashboard
+                    properties:
+                      image:
+                        description: Change the default repository and tag
+                        properties:
+                          repository:
+                            type: string
+                          tag:
+                            type: string
+                        type: object
+                      ingress:
+                        description: Ingress defines an ingress configuration for
+                          the AxonOps Workbench
+                        properties:
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          apiVersion:
+                            type: string
+                          enabled:
+                            type: boolean
+                          hosts:
+                            items:
+                              type: string
+                            type: array
+                          ingressClassName:
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          path:
+                            type: string
+                          pathType:
+                            description: PathType represents the type of path referred
+                              to by a HTTPIngressPath.
+                            type: string
+                          serviceName:
+                            type: string
+                          tls:
+                            items:
+                              description: IngressTLS describes the transport layer
+                                security associated with an ingress.
+                              properties:
+                                hosts:
+                                  description: |-
+                                    hosts is a list of hosts included in the TLS certificate. The values in
+                                    this list must match the name/s used in the tlsSecret. Defaults to the
+                                    wildcard host setting for the loadbalancer controller fulfilling this
+                                    Ingress, if left unspecified.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                secretName:
+                                  description: |-
+                                    secretName is the name of the secret used to terminate TLS traffic on
+                                    port 443. Field is left optional to allow TLS routing based on SNI
+                                    hostname alone. If the SNI host in a listener conflicts with the "Host"
+                                    header field used by an IngressRule, the SNI host is used for termination
+                                    and value of the "Host" header is used for routing.
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      replicas:
+                        description: Increase the number of replicas if desired from
+                          the default, 1
+                        type: integer
+                    type: object
+                  elasticsearch:
+                    description: AxonOpsServer defines the dashboard
+                    properties:
+                      clusterName:
+                        type: string
+                      image:
+                        description: Container image definition with repository and
+                          tag
+                        properties:
+                          repository:
+                            type: string
+                          tag:
+                            type: string
+                        type: object
+                      javaOpts:
+                        type: string
+                      persistentVolume:
+                        description: PersistentVolumeSpec defines the persistent volume
+                          specification
+                        properties:
+                          size:
+                            type: string
+                          storageClass:
+                            type: string
+                        type: object
+                    type: object
+                  server:
+                    description: AxonOpsServer defines the dashboard
+                    properties:
+                      image:
+                        description: Container image definition with repository and
+                          tag
+                        properties:
+                          repository:
+                            type: string
+                          tag:
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              cassandra:
+                description: |-
+                  Defines the Development cluster composition. The default is to build
+                  an Apache Cassandra cluster with not persistent storage and
+                  connected to a locally running AxonOps which requires
+                  the AxonOps server, the AxonOps dashboard and Elasticsearch as metrics storage
+                properties:
+                  clusterName:
+                    type: string
+                  heapSize:
+                    type: string
+                  image:
+                    properties:
+                      repository:
+                        type: string
+                      tag:
+                        type: string
+                    type: object
+                  javaOpts:
+                    type: string
+                  persistentVolume:
+                    description: PersistentVolumeSpec defines the persistent volume
+                      specification
+                    properties:
+                      size:
+                        type: string
+                      storageClass:
+                        type: string
+                    type: object
+                  replicas:
+                    type: integer
+                type: object
+            type: object
+          status:
+            description: AxonOpsCassandraStatus defines the observed state of AxonOpsCassandra
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

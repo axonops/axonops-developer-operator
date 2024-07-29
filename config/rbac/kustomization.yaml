@@ -15,4 +15,3 @@ resources:
 # if you do not want those helpers be installed with your Project.
 - axonopscassandra_editor_role.yaml
 - axonopscassandra_viewer_role.yaml
-

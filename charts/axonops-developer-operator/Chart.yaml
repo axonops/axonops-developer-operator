@@ -1,0 +1,21 @@
+---
+apiVersion: v2
+name: axonops-developer-operator
+description: >
+  This helm chart installs the AxonOps Developer Operator to install a local Apache Cassandra cluster that also uses AxonOps for monitoring.
+
+  ## About AxonOps
+  https://axonops.com
+icon: https://axonops.com/wp-content/uploads/2022/12/Copy-of-AxonopsDigitalMaster_AxonopsFullLogoWhite.svg
+kubeVersion: ">= 1.24.0-0"
+type: application
+
+# Chart version
+version: 0.1.0
+
+# Latest container tag
+appVersion: v0.1.0
+
+maintainers:
+- email: info@axonops.com
+  name: AxonOps Limited
