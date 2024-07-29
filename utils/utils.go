@@ -177,3 +177,10 @@ func ValueOrDefaultInt(value, defaultValue int) int {
 	}
 	return value
 }
+
+func ValueOrDefaultBool(value, defaultValue bool) bool {
+	if !value {
+		return defaultValue
+	}
+	return value
+}

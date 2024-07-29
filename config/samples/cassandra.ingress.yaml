@@ -10,3 +10,12 @@ spec:
   cassandra:
     replicas: 1
     clusterName: "my-dev-env"
+  axonops:
+    dashboard:
+      ingress:
+        enabled: true
+        ingressClassName: traefik
+        labels:
+          hello: world
+        hosts:
+          - axonops-dev.localhost

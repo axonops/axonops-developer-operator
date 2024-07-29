@@ -18,7 +18,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/axonops/axonops-developer-operator/apps"
@@ -32,6 +31,7 @@ import (
 	cassandraaxonopscomv1beta1 "github.com/axonops/axonops-developer-operator/api/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -109,6 +109,10 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				}
 			}
 
+			if err := r.deleteIngress("ds-"+thisClusterName, thisClusterNamespace); err != nil {
+				return ctrl.Result{}, client.IgnoreNotFound(err)
+			}
+
 			// remove our finalizer from the list and update it.
 			axonopsCassCluster.SetFinalizers(utils.RemoveString(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName))
 			if err := r.Update(context.Background(), &axonopsCassCluster); err != nil {
@@ -131,7 +135,6 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	var elasticStatefulSet *appsv1.StatefulSet
 	elasticStatefulSet, err = r.getSts("es-"+thisClusterName, thisClusterNamespace)
-	fmt.Println(thisClusterName)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
@@ -208,6 +211,32 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, err
 		}
 	}
+	if axonopsCassCluster.Spec.AxonOps.Dashboard.Ingress.Enabled {
+		/* Create the dash search Ingress */
+		var dashIngressCurrent *networkingv1.Ingress
+		var dashIngress *networkingv1.Ingress
+		dashIngressCurrent, err = r.getIngress("ds-"+thisClusterName, thisClusterNamespace)
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, err
+		}
+		dashIngress, err = apps.GenerateDashboardIngressConfig(axonopsCassCluster)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if dashIngressCurrent == nil {
+			err = r.Create(ctx, dashIngress)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			/* Update the dash search Ingress */
+			err = r.Update(ctx, dashIngress)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	/*
 		STEP 3:
@@ -256,25 +285,33 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		Create the Cassandra STS
 	*/
 
+	var cassandraStatefulSetCurrent *appsv1.StatefulSet
 	var cassandraStatefulSet *appsv1.StatefulSet
-	cassandraStatefulSet, err = r.getSts("ca-"+thisClusterName, thisClusterNamespace)
+	cassandraStatefulSetCurrent, err = r.getSts("ca-"+thisClusterName, thisClusterNamespace)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
 
-	if cassandraStatefulSet == nil {
-		/* Create the cassandra search STS */
-		cassandraStatefulSet, err = apps.GenerateCassandraConfig(axonopsCassCluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	/* Create the cassandra search STS */
+	cassandraStatefulSet, err = apps.GenerateCassandraConfig(axonopsCassCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
+	if cassandraStatefulSetCurrent == nil {
 		err = r.Create(ctx, cassandraStatefulSet)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	} else {
+		/* Update the cassandra search STS */
+		err = r.Update(ctx, cassandraStatefulSet)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
+
 	var cassandraSvc *corev1.Service
 	cassandraSvc, err = r.getService("ca-"+thisClusterName, thisClusterNamespace)
 	if client.IgnoreNotFound(err) != nil {
@@ -373,6 +410,31 @@ func (r *AxonOpsCassandraReconciler) deleteDeployment(name string, namespace str
 
 func (r *AxonOpsCassandraReconciler) deleteSvc(name string, namespace string) error {
 	dep := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+	}
+
+	return client.IgnoreNotFound(r.Delete(r.Ctx, dep))
+}
+
+func (r *AxonOpsCassandraReconciler) getIngress(name string, namespace string) (*networkingv1.Ingress, error) {
+	var svc networkingv1.Ingress
+
+	err := r.Get(r.Ctx, client.ObjectKey{
+		Namespace: namespace,
+		Name:      name,
+	}, &svc)
+	if err != nil {
+		return nil, err
+	}
+
+	return &svc, nil
+}
+
+func (r *AxonOpsCassandraReconciler) deleteIngress(name string, namespace string) error {
+	dep := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      name,

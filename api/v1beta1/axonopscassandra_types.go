@@ -1,5 +1,5 @@
 /*
-Copyright 2024.
+Copyright AxonOps Limited 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Ingress defines an ingress configuration for the AxonOps Workbench
+type Ingress struct {
+	Enabled          bool                    `json:"enabled,omitempty"`
+	ApiVersion       string                  `json:"apiVersion,omitempty"`
+	Annotations      map[string]string       `json:"annotations,omitempty"`
+	Labels           map[string]string       `json:"labels,omitempty"`
+	IngressClassName string                  `json:"ingressClassName,omitempty"`
+	Hosts            []string                `json:"hosts,omitempty"`
+	TLS              []networking.IngressTLS `json:"tls,omitempty"`
+	Path             string                  `json:"path,omitempty"`
+	PathType         networking.PathType     `json:"pathType,omitempty"`
+	ServiceName      string                  `json:"serviceName,omitempty"`
+}
+
+// PersistentVolumeSpec defines the persistent volume specification
 type PersistentVolumeSpec struct {
 	StorageClass string `json:"storageClass,omitempty"`
 	Size         string `json:"size,omitempty"`
@@ -37,24 +52,32 @@ type AxonOpsCassandraCluster struct {
 	Replicas         int                  `json:"replicas,omitempty"`
 	ClusterName      string               `json:"clusterName,omitempty"`
 	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
+	JavaOpts         string               `json:"javaOpts,omitempty"`
+	HeapSize         string               `json:"heapSize,omitempty"`
 }
 
 // AxonOpsDashboard defines the dashboard
 type AxonOpsDashboard struct {
-	Image    ContainerImage         `json:"image,omitempty"`
-	Replicas int                    `json:"replicas,omitempty"`
-	Ingress  networking.IngressSpec `json:"ingress,omitempty"`
+	// Change the default repository and tag
+	Image ContainerImage `json:"image,omitempty"`
+	// Increase the number of replicas if desired from the default, 1
+	Replicas int     `json:"replicas,omitempty"`
+	Ingress  Ingress `json:"ingress,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
 type AxonOpsServer struct {
+	// Container image definition with repository and tag
 	Image ContainerImage `json:"image,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
 type Elasticsearch struct {
+	// Container image definition with repository and tag
 	Image            ContainerImage       `json:"image,omitempty"`
 	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
+	JavaOpts         string               `json:"javaOpts,omitempty"`
+	ClusterName      string               `json:"clusterName,omitempty"`
 }
 
 // AxonOpsCassandraCluster defines the Apache Cassandra cluster to install
@@ -66,17 +89,17 @@ type AxonOpsCluster struct {
 
 // AxonOpsCassandraSpec defines the desired state of AxonOpsCassandra
 type AxonOpsCassandraSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Defines the Development cluster composition. The default is to build
+	// an Apache Cassandra cluster with not persistent storage and
+	// connected to a locally running AxonOps which requires
+	// the AxonOps server, the AxonOps dashboard and Elasticsearch as metrics storage
 	Cassandra AxonOpsCassandraCluster `json:"cassandra,omitempty"`
 	AxonOps   AxonOpsCluster          `json:"axonops,omitempty"`
-	//Image ContainerImage `json:"name,omitempty"`
 }
 
 // AxonOpsCassandraStatus defines the observed state of AxonOpsCassandra
 type AxonOpsCassandraStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Status not defined yet
 }
 
 //+kubebuilder:object:root=true

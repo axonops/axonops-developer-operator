@@ -88,7 +88,7 @@ spec:
           requests:
             cpu: {{ .CpuRequest }}
             memory: {{ .MemoryRequest }}
-{{- if .Persistent }}
+{{- if ne .Storage "" }}
         volumeMounts:
         - name: data
           mountPath: /usr/share/elasticsearch/data
@@ -134,14 +134,13 @@ func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.Image.Repository, defaultElasticsearchImage),
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.Image.Tag, defaultElasticsearchTag),
 		),
-		ClusterName:   cfg.GetName(),
-		JavaOpts:      "-Xms512m -Xmx512m",
+		ClusterName:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.ClusterName, cfg.GetName()),
+		JavaOpts:      utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.JavaOpts, "-Xms512m -Xmx512m"),
 		CpuLimit:      "1000m",
 		MemoryLimit:   "2Gi",
 		CpuRequest:    "100m",
 		MemoryRequest: "1Gi",
-		Storage:       "10Gi",
-		Persistent:    true,
+		Storage:       utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
 	}
 
 	statefulSet := &appsv1.StatefulSet{}

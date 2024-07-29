@@ -180,12 +180,12 @@ spec:
               command:
                 - bash
                 - -ec
-                {{- if not .Persistent }}
-                - nodetool decommission
-                {{- else }}
+                {{- if ne .Storage "" }}
                 - nodetool drain
+                {{- else }}
+                - nodetool decommission
                 {{- end }}
-{{- if .Persistent }}
+{{- if ne .Storage "" }}
         volumeMounts:
         - name: data
           mountPath: /var/lib/cassandra
@@ -218,7 +218,6 @@ type CassandraConfig struct {
 	MemoryRequest string
 	Storage       string
 	HeapSize      string
-	Persistent    bool
 }
 
 func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -231,14 +230,13 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Tag, defaultCassandraTag),
 		),
 		ClusterName:   utils.ValueOrDefault(cfg.Spec.Cassandra.ClusterName, cfg.GetName()),
-		JavaOpts:      "-Xms512m -Xmx512m",
+		JavaOpts:      utils.ValueOrDefault(cfg.Spec.Cassandra.JavaOpts, "-Xms512m -Xmx512m"),
 		CpuLimit:      "1000m",
 		MemoryLimit:   "2Gi",
 		CpuRequest:    "100m",
 		MemoryRequest: "1Gi",
-		Storage:       "10Gi",
-		HeapSize:      "512M",
-		Persistent:    true,
+		Storage:       utils.ValueOrDefault(cfg.Spec.Cassandra.PersistentVolume.Size, ""),
+		HeapSize:      utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
 	}
 
 	statefulSet := &appsv1.StatefulSet{}
@@ -297,6 +295,7 @@ func GenerateCassandraServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassan
 	return svc, nil
 }
 
+/* not used right now */
 func GenerateCassandraHeadlessServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := CassandraServiceConfig{
 		Name:      cfg.GetName(),

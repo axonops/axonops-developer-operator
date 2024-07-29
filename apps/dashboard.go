@@ -10,6 +10,7 @@ import (
 	"github.com/axonops/axonops-developer-operator/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -75,6 +76,51 @@ spec:
             memory: {{ .MemoryRequest }}
 `
 
+const DashboardIngressTemplate = `{{- if .IngressEnabled -}}
+apiVersion: {{ default "networking.k8s.io/v1" .APIVersion }}
+kind: Ingress
+metadata:
+  name: ds-{{ .Name }}
+  namespace: {{ .Namespace }}
+  {{- with .Labels }}
+  labels:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if .ClassName }}
+  ingressClassName: {{ default "" .ClassName }}
+  {{- end }}
+  {{- if .Tls }}
+  tls:
+    - hosts:
+        {{- range $host := .Hosts }}
+        - {{ $host }}
+        {{- end }}
+      secretName: {{ .Name }}-tls
+  {{- end }}
+  rules:
+    {{- range $host := .Hosts }}
+    - host: {{ $host | quote }}
+      http:
+        paths:
+          - pathType: {{ default $.PathType "Prefix" }}
+            path: {{ default $.Path "/" }}
+            backend:
+              service:
+                name: "ds-{{ $.Name }}"
+                port:
+                  number: 3000
+    {{- end }}
+{{- end }}`
+
 type DashboardServiceConfig struct {
 	Name      string
 	Namespace string
@@ -89,6 +135,20 @@ type DashboardConfig struct {
 	MemoryLimit   string
 	CpuRequest    string
 	MemoryRequest string
+}
+
+type DashboardIngressConfig struct {
+	Name           string
+	Namespace      string
+	IngressEnabled bool
+	APIVersion     string
+	Labels         map[string]string
+	Annotations    map[string]string
+	ClassName      string
+	Tls            bool
+	Hosts          []string
+	Path           string
+	PathType       string
 }
 
 func GenerateDashboardConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.Deployment, error) {
@@ -160,4 +220,44 @@ func GenerateDashboardServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassan
 		return svc, err
 	}
 	return svc, nil
+}
+
+func GenerateDashboardIngressConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*networkingv1.Ingress, error) {
+	config := DashboardIngressConfig{
+		Name:           cfg.GetName(),
+		Namespace:      cfg.GetNamespace(),
+		IngressEnabled: utils.ValueOrDefaultBool(cfg.Spec.AxonOps.Dashboard.Ingress.Enabled, false),
+		APIVersion:     utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Ingress.ApiVersion, "networking.k8s.io/v1"),
+		Labels:         cfg.Spec.AxonOps.Dashboard.Ingress.Labels,
+		Annotations:    cfg.Spec.AxonOps.Dashboard.Ingress.Annotations,
+		ClassName:      utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Ingress.IngressClassName, ""),
+		Tls:            true,
+		Hosts:          cfg.Spec.AxonOps.Dashboard.Ingress.Hosts,
+		Path:           utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Ingress.Path, "/"),
+		PathType:       "Exact",
+	}
+
+	ingress := &networkingv1.Ingress{}
+	b := bytes.NewBuffer(nil)
+	tmpl, err := template.New("DashboardIngress").Funcs(sprig.FuncMap()).Parse(DashboardIngressTemplate)
+	if err != nil {
+		return ingress, err
+	}
+
+	err = tmpl.Execute(b, config)
+	if err != nil {
+		return ingress, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	es := yaml.NewYAMLOrJSONDecoder(b, 500)
+	if err := es.Decode(obj); err != nil {
+		return ingress, err
+	}
+
+	err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, ingress)
+	if err != nil {
+		return ingress, err
+	}
+	return ingress, nil
 }
