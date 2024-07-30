@@ -4,6 +4,8 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
+    "helm.sh/hook": crd-install
+    "helm.sh/hook-delete-policy": "before-hook-creation"
   name: axonopscassandras.cassandra.axonops.com
 spec:
   group: cassandra.axonops.com
