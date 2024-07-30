@@ -42,7 +42,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app: ds-{{ .Name }}
-    component: dashboard
+    component: cassandra
   {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}
@@ -81,7 +81,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app: ds-{{ .Name }}
-    component: dashboard
+    component: cassandra
   {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}
@@ -119,7 +119,7 @@ metadata:
   namespace: {{ .Namespace }}
   labels:
     app: ds-{{ .Name }}
-    component: dashboard
+    component: cassandra
   {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}

@@ -41,8 +41,8 @@ metadata:
   name: as-{{ .Name }}
   namespace: {{ .Namespace }}
   labels:
-    app: ds-{{ .Name }}
-    component: dashboard
+    app: as-{{ .Name }}
+    component: axon-server
   {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}
@@ -79,8 +79,8 @@ metadata:
   name: as-{{ .Name }}
   namespace: {{ .Namespace }}
   labels:
-    app: ds-{{ .Name }}
-    component: dashboard
+    app: as-{{ .Name }}
+    component: axon-server
   {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}

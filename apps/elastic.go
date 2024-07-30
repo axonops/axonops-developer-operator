@@ -40,6 +40,20 @@ kind: Service
 metadata:
   name: es-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: es-{{ .Name }}
+    component: elasticsearch
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     app: es-{{ .Name }}
@@ -60,6 +74,20 @@ kind: StatefulSet
 metadata:
   name: es-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: es-{{ .Name }}
+    component: elasticsearch
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   serviceName: es-{{ .Name }}
   replicas: {{ .Replicas }}
@@ -123,8 +151,10 @@ spec:
 `
 
 type ElasticsearchServiceConfig struct {
-	Name      string
-	Namespace string
+	Name        string
+	Namespace   string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 type ElasticsearchConfig struct {
@@ -143,6 +173,8 @@ type ElasticsearchConfig struct {
 	StorageSize        string
 	StorageClass       string
 	Persistent         bool
+	Labels             map[string]string
+	Annotations        map[string]string
 }
 
 func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -162,6 +194,8 @@ func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra
 		MemoryRequest: "1Gi",
 		StorageSize:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
 		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
+		Labels:        cfg.Spec.AxonOps.Server.Labels,
+		Annotations:   cfg.Spec.AxonOps.Server.Annotations,
 	}
 
 	statefulSet := &appsv1.StatefulSet{}
@@ -191,8 +225,10 @@ func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra
 
 func GenerateElasticsearchServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := ElasticsearchServiceConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
+		Name:        cfg.GetName(),
+		Namespace:   cfg.GetNamespace(),
+		Labels:      cfg.Spec.AxonOps.Server.Labels,
+		Annotations: cfg.Spec.AxonOps.Server.Annotations,
 	}
 
 	svc := &corev1.Service{}
