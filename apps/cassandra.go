@@ -189,6 +189,10 @@ spec:
               fieldPath: metadata.name
         - name: ES_JAVA_OPTS
           value: "{{ .JavaOpts }}"
+        {{- range $env := .Env }}
+        - name: {{ $env.Name }}
+          value: "{{ $env.Value }}"
+        {{- end }}
         resources:
           limits:
             cpu: {{ .CpuLimit }}
@@ -284,6 +288,7 @@ type CassandraConfig struct {
 	StorageClass  string
 	Labels        map[string]string
 	Annotations   map[string]string
+	Env           []cassandraaxonopscomv1beta1.EnvVars
 }
 
 func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -306,6 +311,7 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 		HeapSize:      utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
 		Labels:        cfg.Spec.Cassandra.Labels,
 		Annotations:   cfg.Spec.Cassandra.Annotations,
+		Env:           cfg.Spec.Cassandra.Env,
 	}
 
 	statefulSet := &appsv1.StatefulSet{}

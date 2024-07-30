@@ -21,6 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// EnvVars lists the environmetn variables to add to the deployment or statefulset
+type EnvVars struct {
+	// Environment variable name
+	Name string `json:"name,omitempty"`
+	// Environment variable value
+	Value string `json:"value,omitempty"`
+}
+
 // Ingress defines an ingress configuration for the AxonOps Workbench
 type Ingress struct {
 	Enabled          bool                    `json:"enabled,omitempty"`
@@ -37,8 +45,10 @@ type Ingress struct {
 
 // PersistentVolumeSpec defines the persistent volume specification
 type PersistentVolumeSpec struct {
+	// Optional Storage Class name
 	StorageClass string `json:"storageClass,omitempty"`
-	Size         string `json:"size,omitempty"`
+	// Storage size
+	Size string `json:"size,omitempty"`
 }
 
 type ContainerImage struct {
@@ -56,6 +66,7 @@ type AxonOpsCassandraCluster struct {
 	HeapSize         string               `json:"heapSize,omitempty"`
 	Annotations      map[string]string    `json:"annotations,omitempty"`
 	Labels           map[string]string    `json:"labels,omitempty"`
+	Env              []EnvVars            `json:"env,omitempty"`
 }
 
 // AxonOpsDashboard defines the dashboard
@@ -67,6 +78,7 @@ type AxonOpsDashboard struct {
 	Ingress     Ingress           `json:"ingress,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
+	Env         []EnvVars         `json:"env,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
@@ -75,6 +87,7 @@ type AxonOpsServer struct {
 	Image       ContainerImage    `json:"image,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Labels      map[string]string `json:"labels,omitempty"`
+	Env         []EnvVars         `json:"env,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
@@ -84,6 +97,7 @@ type Elasticsearch struct {
 	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
 	JavaOpts         string               `json:"javaOpts,omitempty"`
 	ClusterName      string               `json:"clusterName,omitempty"`
+	Env              []EnvVars            `json:"env,omitempty"`
 }
 
 // AxonOpsCassandraCluster defines the Apache Cassandra cluster to install

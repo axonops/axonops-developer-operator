@@ -50,6 +50,19 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      env:
+                        items:
+                          description: EnvVars lists the environmetn variables to
+                            add to the deployment or statefulset
+                          properties:
+                            name:
+                              description: Environment variable name
+                              type: string
+                            value:
+                              description: Environment variable value
+                              type: string
+                          type: object
+                        type: array
                       image:
                         description: Change the default repository and tag
                         properties:
@@ -128,6 +141,19 @@ spec:
                     properties:
                       clusterName:
                         type: string
+                      env:
+                        items:
+                          description: EnvVars lists the environmetn variables to
+                            add to the deployment or statefulset
+                          properties:
+                            name:
+                              description: Environment variable name
+                              type: string
+                            value:
+                              description: Environment variable value
+                              type: string
+                          type: object
+                        type: array
                       image:
                         description: Container image definition with repository and
                           tag
@@ -144,8 +170,10 @@ spec:
                           specification
                         properties:
                           size:
+                            description: Storage size
                             type: string
                           storageClass:
+                            description: Optional Storage Class name
                             type: string
                         type: object
                     type: object
@@ -156,6 +184,19 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      env:
+                        items:
+                          description: EnvVars lists the environmetn variables to
+                            add to the deployment or statefulset
+                          properties:
+                            name:
+                              description: Environment variable name
+                              type: string
+                            value:
+                              description: Environment variable value
+                              type: string
+                          type: object
+                        type: array
                       image:
                         description: Container image definition with repository and
                           tag
@@ -184,6 +225,19 @@ spec:
                     type: object
                   clusterName:
                     type: string
+                  env:
+                    items:
+                      description: EnvVars lists the environmetn variables to add
+                        to the deployment or statefulset
+                      properties:
+                        name:
+                          description: Environment variable name
+                          type: string
+                        value:
+                          description: Environment variable value
+                          type: string
+                      type: object
+                    type: array
                   heapSize:
                     type: string
                   image:
@@ -204,8 +258,10 @@ spec:
                       specification
                     properties:
                       size:
+                        description: Storage size
                         type: string
                       storageClass:
+                        description: Optional Storage Class name
                         type: string
                     type: object
                   replicas:

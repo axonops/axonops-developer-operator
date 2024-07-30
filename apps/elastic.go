@@ -125,6 +125,10 @@ spec:
           value: "{{ .JavaOpts }}"
         - name: discovery.type
           value: single-node
+        {{- range $env := .Env }}
+        - name: {{ $env.Name }}
+          value: "{{ $env.Value }}"
+        {{- end }}
         resources:
           limits:
             cpu: {{ .CpuLimit }}
@@ -175,6 +179,7 @@ type ElasticsearchConfig struct {
 	Persistent         bool
 	Labels             map[string]string
 	Annotations        map[string]string
+	Env                []cassandraaxonopscomv1beta1.EnvVars
 }
 
 func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -196,6 +201,7 @@ func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra
 		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
 		Labels:        cfg.Spec.AxonOps.Server.Labels,
 		Annotations:   cfg.Spec.AxonOps.Server.Annotations,
+		Env:           cfg.Spec.AxonOps.Elasticsearch.Env,
 	}
 
 	statefulSet := &appsv1.StatefulSet{}

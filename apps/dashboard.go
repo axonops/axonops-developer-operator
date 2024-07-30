@@ -111,6 +111,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        {{- range $env := .Env }}
+        - name: {{ $env.Name }}
+          value: "{{ $env.Value }}"
+        {{- end }}
         resources:
           limits:
             cpu: {{ .CpuLimit }}
@@ -185,6 +189,7 @@ type DashboardConfig struct {
 	MemoryRequest string
 	Labels        map[string]string
 	Annotations   map[string]string
+	Env           []cassandraaxonopscomv1beta1.EnvVars
 }
 
 type DashboardIngressConfig struct {
@@ -216,6 +221,7 @@ func GenerateDashboardConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 		MemoryRequest: "256Mi",
 		Labels:        cfg.Spec.AxonOps.Dashboard.Labels,
 		Annotations:   cfg.Spec.AxonOps.Dashboard.Annotations,
+		Env:           cfg.Spec.AxonOps.Dashboard.Env,
 	}
 
 	Deployment := &appsv1.Deployment{}

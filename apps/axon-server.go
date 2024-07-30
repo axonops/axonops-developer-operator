@@ -120,6 +120,10 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        {{- range $env := .Env }}
+        - name: {{ $env.Name }}
+          value: "{{ $env.Value }}"
+        {{- end }}
         resources:
           limits:
             cpu: {{ .CpuLimit }}
@@ -147,6 +151,7 @@ type ServerConfig struct {
 	MemoryRequest string
 	Labels        map[string]string
 	Annotations   map[string]string
+	Env           []cassandraaxonopscomv1beta1.EnvVars
 }
 
 func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -164,6 +169,7 @@ func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*app
 		MemoryRequest: "256Mi",
 		Labels:        cfg.Spec.AxonOps.Server.Labels,
 		Annotations:   cfg.Spec.AxonOps.Server.Annotations,
+		Env:           cfg.Spec.AxonOps.Server.Env,
 	}
 
 	StatefulSet := &appsv1.StatefulSet{}
