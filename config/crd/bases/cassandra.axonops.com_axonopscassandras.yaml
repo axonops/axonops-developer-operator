@@ -46,6 +46,10 @@ spec:
                   dashboard:
                     description: AxonOpsDashboard defines the dashboard
                     properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       image:
                         description: Change the default repository and tag
                         properties:
@@ -110,6 +114,10 @@ spec:
                               type: object
                             type: array
                         type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       replicas:
                         description: Increase the number of replicas if desired from
                           the default, 1
@@ -144,6 +152,10 @@ spec:
                   server:
                     description: AxonOpsServer defines the dashboard
                     properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       image:
                         description: Container image definition with repository and
                           tag
@@ -152,6 +164,10 @@ spec:
                             type: string
                           tag:
                             type: string
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
                         type: object
                     type: object
                 type: object
@@ -162,6 +178,10 @@ spec:
                   connected to a locally running AxonOps which requires
                   the AxonOps server, the AxonOps dashboard and Elasticsearch as metrics storage
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   clusterName:
                     type: string
                   heapSize:
@@ -175,6 +195,10 @@ spec:
                     type: object
                   javaOpts:
                     type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
                   persistentVolume:
                     description: PersistentVolumeSpec defines the persistent volume
                       specification

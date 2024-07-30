@@ -24,6 +24,20 @@ kind: Service
 metadata:
   name: as-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     app: as-{{ .Name }}
@@ -48,6 +62,20 @@ kind: StatefulSet
 metadata:
   name: as-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   serviceName: as-{{ .Name }}
   replicas: {{ .Replicas }}
@@ -86,8 +114,10 @@ spec:
 `
 
 type ServerServiceConfig struct {
-	Name      string
-	Namespace string
+	Name        string
+	Namespace   string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 type ServerConfig struct {
@@ -99,6 +129,8 @@ type ServerConfig struct {
 	MemoryLimit   string
 	CpuRequest    string
 	MemoryRequest string
+	Labels        map[string]string
+	Annotations   map[string]string
 }
 
 func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -114,6 +146,8 @@ func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*app
 		MemoryLimit:   "512Mi",
 		CpuRequest:    "100m",
 		MemoryRequest: "256Mi",
+		Labels:        cfg.Spec.AxonOps.Server.Labels,
+		Annotations:   cfg.Spec.AxonOps.Server.Annotations,
 	}
 
 	StatefulSet := &appsv1.StatefulSet{}
@@ -143,8 +177,10 @@ func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*app
 
 func GenerateServerServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := ServerServiceConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
+		Name:        cfg.GetName(),
+		Namespace:   cfg.GetNamespace(),
+		Labels:      cfg.Spec.AxonOps.Server.Labels,
+		Annotations: cfg.Spec.AxonOps.Server.Annotations,
 	}
 
 	svc := &corev1.Service{}

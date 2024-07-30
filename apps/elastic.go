@@ -88,7 +88,7 @@ spec:
           requests:
             cpu: {{ .CpuRequest }}
             memory: {{ .MemoryRequest }}
-{{- if ne .Storage "" }}
+{{- if ne .StorageSize "" }}
         volumeMounts:
         - name: data
           mountPath: /usr/share/elasticsearch/data
@@ -97,9 +97,12 @@ spec:
       name: data
     spec:
       accessModes: ["ReadWriteOnce"]
+      {{- if ne .StorageClass "" }}
+      storageClassName: {{ .StorageClass }}
+      {{- end }}
       resources:
         requests:
-          storage: {{ .Storage }}
+          storage: {{ .StorageSize }}
 {{- end }}
 `
 
@@ -121,7 +124,8 @@ type ElasticsearchConfig struct {
 	MemoryLimit        string
 	CpuRequest         string
 	MemoryRequest      string
-	Storage            string
+	StorageSize        string
+	StorageClass       string
 	Persistent         bool
 }
 
@@ -140,7 +144,8 @@ func GenerateElasticsearchConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra
 		MemoryLimit:   "2Gi",
 		CpuRequest:    "100m",
 		MemoryRequest: "1Gi",
-		Storage:       utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
+		StorageSize:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
+		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
 	}
 
 	statefulSet := &appsv1.StatefulSet{}

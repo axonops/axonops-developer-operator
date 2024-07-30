@@ -24,6 +24,20 @@ kind: Service
 metadata:
   name: ca-{{ .Name }}-headless
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   publishNotReadyAddresses: true
   clusterIP: None
@@ -49,6 +63,20 @@ kind: Service
 metadata:
   name: ca-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     app: ca-{{ .Name }}
@@ -73,6 +101,20 @@ kind: StatefulSet
 metadata:
   name: ca-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   serviceName: ca-{{ .Name }}
   replicas: {{ .Replicas }}
@@ -180,12 +222,12 @@ spec:
               command:
                 - bash
                 - -ec
-                {{- if ne .Storage "" }}
+                {{- if ne .StorageSize "" }}
                 - nodetool drain
                 {{- else }}
                 - nodetool decommission
                 {{- end }}
-{{- if ne .Storage "" }}
+{{- if ne .StorageSize "" }}
         volumeMounts:
         - name: data
           mountPath: /var/lib/cassandra
@@ -194,15 +236,20 @@ spec:
       name: data
     spec:
       accessModes: ["ReadWriteOnce"]
+      {{- if ne .StorageClass "" }}
+      storageClassName: {{ .StorageClass }}
+      {{- end }}
       resources:
         requests:
-          storage: {{ .Storage }}
+          storage: {{ .StorageSize }}
 {{- end }}
 `
 
 type CassandraServiceConfig struct {
-	Name      string
-	Namespace string
+	Name        string
+	Namespace   string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 type CassandraConfig struct {
@@ -216,8 +263,11 @@ type CassandraConfig struct {
 	MemoryLimit   string
 	CpuRequest    string
 	MemoryRequest string
-	Storage       string
 	HeapSize      string
+	StorageSize   string
+	StorageClass  string
+	Labels        map[string]string
+	Annotations   map[string]string
 }
 
 func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -235,8 +285,11 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 		MemoryLimit:   "2Gi",
 		CpuRequest:    "100m",
 		MemoryRequest: "1Gi",
-		Storage:       utils.ValueOrDefault(cfg.Spec.Cassandra.PersistentVolume.Size, ""),
+		StorageSize:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
+		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
 		HeapSize:      utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
+		Labels:        cfg.Spec.Cassandra.Labels,
+		Annotations:   cfg.Spec.Cassandra.Annotations,
 	}
 
 	statefulSet := &appsv1.StatefulSet{}
@@ -266,8 +319,10 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 
 func GenerateCassandraServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := CassandraServiceConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
+		Name:        cfg.GetName(),
+		Namespace:   cfg.GetNamespace(),
+		Labels:      cfg.Spec.Cassandra.Labels,
+		Annotations: cfg.Spec.Cassandra.Annotations,
 	}
 
 	svc := &corev1.Service{}
@@ -298,8 +353,10 @@ func GenerateCassandraServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassan
 /* not used right now */
 func GenerateCassandraHeadlessServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := CassandraServiceConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
+		Name:        cfg.GetName(),
+		Namespace:   cfg.GetNamespace(),
+		Labels:      cfg.Spec.Cassandra.Labels,
+		Annotations: cfg.Spec.Cassandra.Annotations,
 	}
 
 	svc := &corev1.Service{}

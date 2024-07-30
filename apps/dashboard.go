@@ -25,6 +25,20 @@ kind: Service
 metadata:
   name: ds-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   selector:
     app: ds-{{ .Name }}
@@ -41,6 +55,20 @@ kind: Deployment
 metadata:
   name: ds-{{ .Name }}
   namespace: {{ .Namespace }}
+  labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
+  {{- with .Annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+    {{- end }}
+  {{- end }}
 spec:
   serviceName: ds-{{ .Name }}
   replicas: {{ .Replicas }}
@@ -82,8 +110,10 @@ kind: Ingress
 metadata:
   name: ds-{{ .Name }}
   namespace: {{ .Namespace }}
-  {{- with .Labels }}
   labels:
+    app: ds-{{ .Name }}
+    component: dashboard
+  {{- with .Labels }}
     {{- range $key, $value := . }}
     {{ $key }}: {{ $value }}
     {{- end }}
@@ -122,8 +152,10 @@ spec:
 {{- end }}`
 
 type DashboardServiceConfig struct {
-	Name      string
-	Namespace string
+	Name        string
+	Namespace   string
+	Labels      map[string]string
+	Annotations map[string]string
 }
 
 type DashboardConfig struct {
@@ -135,6 +167,8 @@ type DashboardConfig struct {
 	MemoryLimit   string
 	CpuRequest    string
 	MemoryRequest string
+	Labels        map[string]string
+	Annotations   map[string]string
 }
 
 type DashboardIngressConfig struct {
@@ -164,6 +198,8 @@ func GenerateDashboardConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 		MemoryLimit:   "512Mi",
 		CpuRequest:    "100m",
 		MemoryRequest: "256Mi",
+		Labels:        cfg.Spec.AxonOps.Dashboard.Labels,
+		Annotations:   cfg.Spec.AxonOps.Dashboard.Annotations,
 	}
 
 	Deployment := &appsv1.Deployment{}
@@ -193,8 +229,10 @@ func GenerateDashboardConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 
 func GenerateDashboardServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
 	config := DashboardServiceConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
+		Name:        cfg.GetName(),
+		Namespace:   cfg.GetNamespace(),
+		Labels:      cfg.Spec.AxonOps.Dashboard.Labels,
+		Annotations: cfg.Spec.AxonOps.Dashboard.Annotations,
 	}
 
 	svc := &corev1.Service{}

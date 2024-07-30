@@ -54,6 +54,8 @@ type AxonOpsCassandraCluster struct {
 	PersistentVolume PersistentVolumeSpec `json:"persistentVolume,omitempty"`
 	JavaOpts         string               `json:"javaOpts,omitempty"`
 	HeapSize         string               `json:"heapSize,omitempty"`
+	Annotations      map[string]string    `json:"annotations,omitempty"`
+	Labels           map[string]string    `json:"labels,omitempty"`
 }
 
 // AxonOpsDashboard defines the dashboard
@@ -61,14 +63,18 @@ type AxonOpsDashboard struct {
 	// Change the default repository and tag
 	Image ContainerImage `json:"image,omitempty"`
 	// Increase the number of replicas if desired from the default, 1
-	Replicas int     `json:"replicas,omitempty"`
-	Ingress  Ingress `json:"ingress,omitempty"`
+	Replicas    int               `json:"replicas,omitempty"`
+	Ingress     Ingress           `json:"ingress,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
 type AxonOpsServer struct {
 	// Container image definition with repository and tag
-	Image ContainerImage `json:"image,omitempty"`
+	Image       ContainerImage    `json:"image,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard

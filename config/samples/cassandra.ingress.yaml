@@ -10,7 +10,13 @@ spec:
   cassandra:
     replicas: 1
     clusterName: "my-dev-env"
+    image:
+      tag: "5.0"
   axonops:
+    elasticsearch:
+      persistentVolume:
+        size: 2Gi
+        storageClass: local-path
     dashboard:
       ingress:
         enabled: true
