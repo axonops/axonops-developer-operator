@@ -18,6 +18,13 @@ spec:
         size: 2Gi
         storageClass: local-path
     dashboard:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
       ingress:
         enabled: true
         ingressClassName: traefik
