@@ -105,7 +105,9 @@ type AxonOpsCassandraSpec struct {
 
 // AxonOpsCassandraStatus defines the observed state of AxonOpsCassandra
 type AxonOpsCassandraStatus struct {
-	// Status not defined yet
+	Reason     string             `json:"reason"`
+	Message    string             `json:"message"`
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 //+kubebuilder:object:root=true

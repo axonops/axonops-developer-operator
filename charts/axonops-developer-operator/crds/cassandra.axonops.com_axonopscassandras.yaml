@@ -6,9 +6,9 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.14.0
     "helm.sh/hook": crd-install
     "helm.sh/hook-delete-policy": "before-hook-creation"
-  name: axonopscassandras.cassandra.axonops.com
+  name: axonopscassandras.axonops.com
 spec:
-  group: cassandra.axonops.com
+  group: axonops.com
   names:
     kind: AxonOpsCassandra
     listKind: AxonOpsCassandraList
@@ -48,6 +48,10 @@ spec:
                   dashboard:
                     description: AxonOpsDashboard defines the dashboard
                     properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       image:
                         description: Change the default repository and tag
                         properties:
@@ -112,6 +116,10 @@ spec:
                               type: object
                             type: array
                         type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       replicas:
                         description: Increase the number of replicas if desired from
                           the default, 1
@@ -146,6 +154,10 @@ spec:
                   server:
                     description: AxonOpsServer defines the dashboard
                     properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
                       image:
                         description: Container image definition with repository and
                           tag
@@ -154,6 +166,10 @@ spec:
                             type: string
                           tag:
                             type: string
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
                         type: object
                     type: object
                 type: object
@@ -164,6 +180,10 @@ spec:
                   connected to a locally running AxonOps which requires
                   the AxonOps server, the AxonOps dashboard and Elasticsearch as metrics storage
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   clusterName:
                     type: string
                   heapSize:
@@ -177,6 +197,10 @@ spec:
                     type: object
                   javaOpts:
                     type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
                   persistentVolume:
                     description: PersistentVolumeSpec defines the persistent volume
                       specification
@@ -192,6 +216,84 @@ spec:
             type: object
           status:
             description: AxonOpsCassandraStatus defines the observed state of AxonOpsCassandra
+            properties:
+              conditions:
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              message:
+                type: string
+              reason:
+                type: string
+            required:
+            - conditions
+            - message
+            - reason
             type: object
         type: object
     served: true
