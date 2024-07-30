@@ -3,7 +3,13 @@
 This Kubernetes operator can create a full Apache Cassandra® environment for development that includes
 [AxonOps](https://axonops.com)
 
-Apache Cassandra, Cassandra and Apache are either registered trademarks or trademarks of the Apache Software Foundation (http://www.apache.org/) in the United States and/or other countries and are used with permission. The Apache Software Foundation has no affiliation with and does not endorse or review AxonOps Developer Operator
+Apache Cassandra, Cassandra and Apache are either registered trademarks or trademarks of the Apache Software Foundation (http://www.apache.org/) in the United States and/or other countries and are used with permission. The Apache Software Foundation has no affiliation with and does not endorse or review AxonOps Developer Operator.
+
+
+
+https://github.com/user-attachments/assets/1dad7b84-07da-4f36-9e6a-bbb6ff1134ad
+
+
 
 ## Installation
 
