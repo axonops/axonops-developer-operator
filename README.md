@@ -24,7 +24,7 @@ helm upgrade --install axonops-developer-operator --create-namespace -n axonops 
 The simplest configuration would be the following to deploy a single Cassandra node with the AxonOps components:
 
 ```yaml
-apiVersion: cassandra.axonops.com/v1beta1
+apiVersion: axonops.com/v1beta1
 kind: AxonOpsCassandra
 metadata:
   name: axonopscassandra-sample
@@ -35,7 +35,7 @@ spec:
 By default it does not use persistent storage but this is configurable.
 
 ```yaml
-apiVersion: cassandra.axonops.com/v1beta1
+apiVersion: axonops.com/v1beta1
 kind: AxonOpsCassandra
 metadata:
   name: axonopscassandra-sample
@@ -82,7 +82,7 @@ kubectl port-forward -n axonops-dev $(kubectl get svc -n axonops-dev -l componen
 If you do have an ingress, you can enable it:
 
 ```yaml
-apiVersion: cassandra.axonops.com/v1beta1
+apiVersion: axonops.com/v1beta1
 kind: AxonOpsCassandra
 metadata:
   name: axonopscassandra-sample

@@ -43,9 +43,9 @@ type AxonOpsCassandraReconciler struct {
 	Ctx                  context.Context
 }
 
-//+kubebuilder:rbac:groups=cassandra.axonops.com,resources=axonopscassandras,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=cassandra.axonops.com,resources=axonopscassandras/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=cassandra.axonops.com,resources=axonopscassandras/finalizers,verbs=update
+//+kubebuilder:rbac:groups=axonops.com,resources=axonopscassandras,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=axonops.com,resources=axonopscassandras/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=axonops.com,resources=axonopscassandras/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -70,7 +70,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	var thisClusterNamespace = axonopsCassCluster.GetNamespace()
 
 	//! [finalizer]
-	axonopsFinalizerName := "cassandra.axonops.com/finalizer"
+	axonopsFinalizerName := "axonops.com/finalizer"
 	if axonopsCassCluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !utils.ContainsString(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName) {
 			axonopsCassCluster.SetFinalizers(append(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName))
@@ -244,37 +244,49 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	*/
 
 	var axonServerSts *appsv1.StatefulSet
-	axonServerSts, err = r.getSts("as-"+thisClusterName, thisClusterNamespace)
+	var axonServerStsCurrent *appsv1.StatefulSet
+	axonServerStsCurrent, err = r.getSts("as-"+thisClusterName, thisClusterNamespace)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-
-	if axonServerSts == nil {
-		/* Create the axonServer search STS */
-		axonServerSts, err = apps.GenerateServerConfig(axonopsCassCluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
+	/* Create the axonServer search STS */
+	axonServerSts, err = apps.GenerateServerConfig(axonopsCassCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if axonServerStsCurrent == nil {
 		err = r.Create(ctx, axonServerSts)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-	}
-	var axonServerSvc *corev1.Service
-	axonServerSvc, err = r.getService("as-"+thisClusterName, thisClusterNamespace)
-	if client.IgnoreNotFound(err) != nil {
-		return ctrl.Result{}, err
-	}
-	if axonServerSvc == nil {
-		/* Create the axonServer search service */
-		axonServerSvc, err = apps.GenerateServerServiceConfig(axonopsCassCluster)
+	} else {
+		/* Update the axonServer search STS */
+		err = r.Update(ctx, axonServerSts)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	}
 
+	var axonServerSvcCurrent *corev1.Service
+	var axonServerSvc *corev1.Service
+	axonServerSvcCurrent, err = r.getService("as-"+thisClusterName, thisClusterNamespace)
+	if client.IgnoreNotFound(err) != nil {
+		return ctrl.Result{}, err
+	}
+	/* Create the axonServer search service */
+	axonServerSvc, err = apps.GenerateServerServiceConfig(axonopsCassCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if axonServerSvcCurrent == nil {
 		err = r.Create(ctx, axonServerSvc)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		/* Update the axonServer search service */
+		err = r.Update(ctx, axonServerSvc)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -313,22 +325,47 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	var cassandraSvc *corev1.Service
-	cassandraSvc, err = r.getService("ca-"+thisClusterName, thisClusterNamespace)
+	var cassandraSvcCurrent *corev1.Service
+	cassandraSvcCurrent, err = r.getService("ca-"+thisClusterName, thisClusterNamespace)
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-	if cassandraSvc == nil {
-		/* Create the cassandra search service */
-		cassandraSvc, err = apps.GenerateCassandraServiceConfig(axonopsCassCluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
+	/* Create the cassandra search service */
+	cassandraSvc, err = apps.GenerateCassandraServiceConfig(axonopsCassCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if cassandraSvcCurrent == nil {
 		err = r.Create(ctx, cassandraSvc)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+	} else {
+		/* Update the cassandra search service */
+		err = r.Update(ctx, cassandraSvc)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
+
+	// condition := metav1.Condition{
+	// 	Type:               "Ready",
+	// 	Status:             metav1.ConditionTrue,
+	// 	Reason:             "DeploymentCreated",
+	// 	Message:            "The AxonOps and Cassandra deployment has been successfully created",
+	// 	LastTransitionTime: metav1.Now(),
+	// }
+	// statusUpdate := cassandraaxonopscomv1beta1.AxonOpsCassandraStatus{
+	// 	Reason:     "Deployment Created",
+	// 	Message:    "The AxonOps and Cassandra deployment has been successfully created",
+	// 	Conditions: []metav1.Condition{condition},
+	// }
+	// axonopsCassCluster.Status = statusUpdate
+	// err = r.Client.Status().Update(ctx, &axonopsCassCluster)
+	// if err != nil {
+	// 	return ctrl.Result{}, err
+	// }
+
 	return ctrl.Result{}, nil
 }
 

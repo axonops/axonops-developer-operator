@@ -13,7 +13,7 @@ resources:
     namespaced: true
   controller: true
   domain: axonops.com
-  group: cassandra.axonops.com
+  group: axonops.com
   kind: AxonOpsCassandra
   path: github.com/axonops/axonops-developer-operator/api/v1beta1
   version: v1beta1
