@@ -27,6 +27,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -179,17 +180,14 @@ type DashboardServiceConfig struct {
 }
 
 type DashboardConfig struct {
-	Name          string
-	Namespace     string
-	Replicas      int
-	Image         string
-	CpuLimit      string
-	MemoryLimit   string
-	CpuRequest    string
-	MemoryRequest string
-	Labels        map[string]string
-	Annotations   map[string]string
-	Env           []cassandraaxonopscomv1beta1.EnvVars
+	Name        string
+	Namespace   string
+	Replicas    int
+	Image       string
+	Labels      map[string]string
+	Annotations map[string]string
+	Env         []cassandraaxonopscomv1beta1.EnvVars
+	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type DashboardIngressConfig struct {
@@ -215,13 +213,19 @@ func GenerateDashboardConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Image.Repository, defaultDashboardImage),
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Image.Tag, defaultDashboardTag),
 		),
-		CpuLimit:      "1000m",
-		MemoryLimit:   "512Mi",
-		CpuRequest:    "100m",
-		MemoryRequest: "256Mi",
-		Labels:        cfg.Spec.AxonOps.Dashboard.Labels,
-		Annotations:   cfg.Spec.AxonOps.Dashboard.Annotations,
-		Env:           cfg.Spec.AxonOps.Dashboard.Env,
+		Labels:      cfg.Spec.AxonOps.Dashboard.Labels,
+		Annotations: cfg.Spec.AxonOps.Dashboard.Annotations,
+		Env:         cfg.Spec.AxonOps.Dashboard.Env,
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Resources.Requests.Cpu().String(), "500m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Resources.Requests.Memory().String(), "256Mi")),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Resources.Limits.Cpu().String(), "1000m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Dashboard.Resources.Limits.Memory().String(), "512Mi")),
+			},
+		},
 	}
 
 	Deployment := &appsv1.Deployment{}

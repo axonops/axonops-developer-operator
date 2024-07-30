@@ -26,6 +26,7 @@ import (
 	"github.com/axonops/axonops-developer-operator/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -141,17 +142,14 @@ type ServerServiceConfig struct {
 }
 
 type ServerConfig struct {
-	Name          string
-	Namespace     string
-	Replicas      int
-	Image         string
-	CpuLimit      string
-	MemoryLimit   string
-	CpuRequest    string
-	MemoryRequest string
-	Labels        map[string]string
-	Annotations   map[string]string
-	Env           []cassandraaxonopscomv1beta1.EnvVars
+	Name        string
+	Namespace   string
+	Replicas    int
+	Image       string
+	Labels      map[string]string
+	Annotations map[string]string
+	Env         []cassandraaxonopscomv1beta1.EnvVars
+	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -163,13 +161,19 @@ func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*app
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Image.Repository, defaultServerImage),
 			utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Image.Tag, defaultServerTag),
 		),
-		CpuLimit:      "1000m",
-		MemoryLimit:   "512Mi",
-		CpuRequest:    "100m",
-		MemoryRequest: "256Mi",
-		Labels:        cfg.Spec.AxonOps.Server.Labels,
-		Annotations:   cfg.Spec.AxonOps.Server.Annotations,
-		Env:           cfg.Spec.AxonOps.Server.Env,
+		Labels:      cfg.Spec.AxonOps.Server.Labels,
+		Annotations: cfg.Spec.AxonOps.Server.Annotations,
+		Env:         cfg.Spec.AxonOps.Server.Env,
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Resources.Requests.Cpu().String(), "250m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Resources.Requests.Memory().String(), "256Mi")),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Resources.Limits.Cpu().String(), "1000m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.AxonOps.Server.Resources.Limits.Memory().String(), "512Mi")),
+			},
+		},
 	}
 
 	StatefulSet := &appsv1.StatefulSet{}

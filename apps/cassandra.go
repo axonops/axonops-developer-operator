@@ -26,6 +26,7 @@ import (
 	"github.com/axonops/axonops-developer-operator/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
@@ -273,22 +274,19 @@ type CassandraServiceConfig struct {
 }
 
 type CassandraConfig struct {
-	Name          string
-	Namespace     string
-	Replicas      int
-	Image         string
-	ClusterName   string
-	JavaOpts      string
-	CpuLimit      string
-	MemoryLimit   string
-	CpuRequest    string
-	MemoryRequest string
-	HeapSize      string
-	StorageSize   string
-	StorageClass  string
-	Labels        map[string]string
-	Annotations   map[string]string
-	Env           []cassandraaxonopscomv1beta1.EnvVars
+	Name         string
+	Namespace    string
+	Replicas     int
+	Image        string
+	ClusterName  string
+	JavaOpts     string
+	HeapSize     string
+	StorageSize  string
+	StorageClass string
+	Labels       map[string]string
+	Annotations  map[string]string
+	Env          []cassandraaxonopscomv1beta1.EnvVars
+	Resources    corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -300,18 +298,24 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Repository, defaultCassandraImage),
 			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Tag, defaultCassandraTag),
 		),
-		ClusterName:   utils.ValueOrDefault(cfg.Spec.Cassandra.ClusterName, cfg.GetName()),
-		JavaOpts:      utils.ValueOrDefault(cfg.Spec.Cassandra.JavaOpts, "-Xms512m -Xmx512m"),
-		CpuLimit:      "1000m",
-		MemoryLimit:   "2Gi",
-		CpuRequest:    "100m",
-		MemoryRequest: "1Gi",
-		StorageSize:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
-		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
-		HeapSize:      utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
-		Labels:        cfg.Spec.Cassandra.Labels,
-		Annotations:   cfg.Spec.Cassandra.Annotations,
-		Env:           cfg.Spec.Cassandra.Env,
+		ClusterName:  utils.ValueOrDefault(cfg.Spec.Cassandra.ClusterName, cfg.GetName()),
+		JavaOpts:     utils.ValueOrDefault(cfg.Spec.Cassandra.JavaOpts, "-Xms512m -Xmx512m"),
+		StorageSize:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
+		StorageClass: utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
+		HeapSize:     utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
+		Labels:       cfg.Spec.Cassandra.Labels,
+		Annotations:  cfg.Spec.Cassandra.Annotations,
+		Env:          cfg.Spec.Cassandra.Env,
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Requests.Cpu().String(), "500m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Requests.Memory().String(), "1Gi")),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Cpu().String(), "1000m")),
+				corev1.ResourceMemory: resource.MustParse(utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Memory().String(), "2Gi")),
+			},
+		},
 	}
 
 	statefulSet := &appsv1.StatefulSet{}
