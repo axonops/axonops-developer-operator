@@ -23,6 +23,7 @@ import (
 	"github.com/axonops/axonops-developer-operator/apps"
 	"github.com/axonops/axonops-developer-operator/utils"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,6 +40,7 @@ import (
 type AxonOpsCassandraReconciler struct {
 	client.Client
 	ReconciliationPeriod time.Duration
+	Recorder             record.EventRecorder
 	Scheme               *runtime.Scheme
 	Ctx                  context.Context
 }
@@ -134,24 +136,34 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	*/
 
 	var elasticStatefulSet *appsv1.StatefulSet
-	elasticStatefulSet, err = r.getSts("es-"+thisClusterName, thisClusterNamespace)
+	var elasticCurrentStatefulSet *appsv1.StatefulSet
+	elasticCurrentStatefulSet, err = r.getSts("es-"+thisClusterName, thisClusterNamespace)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
+	/* Create the elastic search STS */
+	elasticStatefulSet, err = apps.GenerateElasticsearchConfig(axonopsCassCluster)
+	if err != nil {
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the Elasticsearch config: "+err.Error())
+		return ctrl.Result{}, err
+	}
 
-	if elasticStatefulSet == nil {
-		/* Create the elastic search STS */
-		elasticStatefulSet, err = apps.GenerateElasticsearchConfig(axonopsCassCluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
+	if elasticCurrentStatefulSet == nil {
 		err = r.Create(ctx, elasticStatefulSet)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Elasticsearch sts: "+err.Error())
+			return ctrl.Result{}, err
+		}
+	} else {
+		/* Update the elastic search STS */
+		err = r.Update(ctx, elasticStatefulSet)
+		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the Elasticsearch sts: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	}
+
 	var elasticSvc *corev1.Service
 	elasticSvc, err = r.getService("es-"+thisClusterName, thisClusterNamespace)
 	if client.IgnoreNotFound(err) != nil {
@@ -161,6 +173,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		/* Create the elastic search service */
 		elasticSvc, err = apps.GenerateElasticsearchServiceConfig(axonopsCassCluster)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the Elasticsearch service config: "+err.Error())
 			return ctrl.Result{}, err
 		}
 
@@ -176,24 +189,34 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	*/
 
 	var dashDeployment *appsv1.Deployment
-	dashDeployment, err = r.getDeployment("ds-"+thisClusterName, thisClusterNamespace)
+	var dashDeploymentCurrent *appsv1.Deployment
+	dashDeploymentCurrent, err = r.getDeployment("ds-"+thisClusterName, thisClusterNamespace)
 
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
 
-	if dashDeployment == nil {
-		/* Create the dash search STS */
-		dashDeployment, err = apps.GenerateDashboardConfig(axonopsCassCluster)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
+	/* Create the dash search STS */
+	dashDeployment, err = apps.GenerateDashboardConfig(axonopsCassCluster)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
+	if dashDeploymentCurrent == nil {
 		err = r.Create(ctx, dashDeployment)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the AxonOps dashboard: "+err.Error())
+			return ctrl.Result{}, err
+		}
+	} else {
+		/* Update the dash search STS */
+		err = r.Update(ctx, dashDeployment)
+		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the AxonOps dashboard: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	}
+
 	var dashSvc *corev1.Service
 	dashSvc, err = r.getService("ds-"+thisClusterName, thisClusterNamespace)
 	if client.IgnoreNotFound(err) != nil {
@@ -203,11 +226,13 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		/* Create the dash search service */
 		dashSvc, err = apps.GenerateDashboardServiceConfig(axonopsCassCluster)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the AxonOps dashboard config: "+err.Error())
 			return ctrl.Result{}, err
 		}
 
 		err = r.Create(ctx, dashSvc)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the AxonOps service: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	}
@@ -221,18 +246,21 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		dashIngress, err = apps.GenerateDashboardIngressConfig(axonopsCassCluster)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Could not parse the AxonOps ingress: "+err.Error())
 			return ctrl.Result{}, err
 		}
 
 		if dashIngressCurrent == nil {
 			err = r.Create(ctx, dashIngress)
 			if err != nil {
+				r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the AxonOps ingress: "+err.Error())
 				return ctrl.Result{}, err
 			}
 		} else {
 			/* Update the dash search Ingress */
 			err = r.Update(ctx, dashIngress)
 			if err != nil {
+				r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the AxonOps ingress: "+err.Error())
 				return ctrl.Result{}, err
 			}
 		}
@@ -253,11 +281,13 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	/* Create the axonServer search STS */
 	axonServerSts, err = apps.GenerateServerConfig(axonopsCassCluster)
 	if err != nil {
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the AxonOps configuration: "+err.Error())
 		return ctrl.Result{}, err
 	}
 	if axonServerStsCurrent == nil {
 		err = r.Create(ctx, axonServerSts)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to created the AxonOps service: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	} else {
@@ -277,17 +307,20 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	/* Create the axonServer search service */
 	axonServerSvc, err = apps.GenerateServerServiceConfig(axonopsCassCluster)
 	if err != nil {
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the AxonOps configuration: "+err.Error())
 		return ctrl.Result{}, err
 	}
 	if axonServerSvcCurrent == nil {
 		err = r.Create(ctx, axonServerSvc)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the AxonOps service: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	} else {
 		/* Update the axonServer search service */
 		err = r.Update(ctx, axonServerSvc)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the AxonOps service: "+err.Error())
 			return ctrl.Result{}, err
 		}
 	}
@@ -308,20 +341,25 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	/* Create the cassandra search STS */
 	cassandraStatefulSet, err = apps.GenerateCassandraConfig(axonopsCassCluster)
 	if err != nil {
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the Cassandra configuration: "+err.Error())
 		return ctrl.Result{}, err
 	}
 
 	if cassandraStatefulSetCurrent == nil {
 		err = r.Create(ctx, cassandraStatefulSet)
 		if err != nil {
+			//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Cassandra Statefulset: "+err.Error())
 			return ctrl.Result{}, err
 		}
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Cassandra sts created successfully")
 	} else {
 		/* Update the cassandra search STS */
 		err = r.Update(ctx, cassandraStatefulSet)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the Cassandra Statefulset: "+err.Error())
 			return ctrl.Result{}, err
 		}
+		//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Updated", "Cassandra sts updated successfully")
 	}
 
 	var cassandraSvc *corev1.Service
@@ -333,6 +371,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	/* Create the cassandra search service */
 	cassandraSvc, err = apps.GenerateCassandraServiceConfig(axonopsCassCluster)
 	if err != nil {
+		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Cassandra service: "+err.Error())
 		return ctrl.Result{}, err
 	}
 	if cassandraSvcCurrent == nil {
@@ -340,13 +379,18 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+		//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Cassandra service created successfully")
 	} else {
 		/* Update the cassandra search service */
 		err = r.Update(ctx, cassandraSvc)
 		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the Cassandra service: "+err.Error())
 			return ctrl.Result{}, err
 		}
+		//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Cassandra service updated successfully")
 	}
+
+	r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Environment created successfully")
 
 	// condition := metav1.Condition{
 	// 	Type:               "Ready",
@@ -372,6 +416,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 // SetupWithManager sets up the controller with the Manager.
 func (r *AxonOpsCassandraReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.GenerationChangedPredicate{}
+	r.Recorder = mgr.GetEventRecorderFor("AxonDev")
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&cassandraaxonopscomv1beta1.AxonOpsCassandra{}).

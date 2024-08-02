@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"os"
+	"strings"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -30,6 +31,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -58,6 +60,7 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
+	var watchNamespaces string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to. "+
 		"Use the port :8080. If not set, it will be '0 in order to disable the metrics server")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -68,6 +71,7 @@ func main() {
 		"If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook servers")
+	flag.StringVar(&watchNamespaces, "watch-namespaces", "", "Comma separated list of namespaces that vals-operator will watch.")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -96,6 +100,34 @@ func main() {
 		TLSOpts: tlsOpts,
 	})
 
+	var cacheOptions cache.Options
+
+	if watchNamespaces != "" {
+		setupLog.Info("watching namespaces", "namespaces", watchNamespaces)
+
+		// Split the watchNamespaces string into a slice of namespaces
+		namespaces := strings.Split(watchNamespaces, ",")
+
+		// Create a map to hold namespace configurations
+		namespaceConfigs := make(map[string]cache.Config)
+
+		// Add each namespace to the map
+		for _, ns := range namespaces {
+			// Trim any whitespace from the namespace
+			ns = strings.TrimSpace(ns)
+			if ns != "" {
+				namespaceConfigs[ns] = cache.Config{}
+			}
+		}
+
+		// Set the cache options with the namespace configurations
+		cacheOptions = cache.Options{
+			DefaultNamespaces: namespaceConfigs,
+		}
+
+		setupLog.Info("configured cache for namespaces", "count", len(namespaceConfigs))
+	}
+
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
@@ -107,17 +139,7 @@ func main() {
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "c9da0915.axonops.com",
-		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
-		// when the Manager ends. This requires the binary to immediately end when the
-		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
-		// speeds up voluntary leader transitions as the new leader don't have to wait
-		// LeaseDuration time first.
-		//
-		// In the default scaffold provided, the program ends immediately after
-		// the manager stops, so would be fine to enable this option. However,
-		// if you are doing or is intended to do any operation such as perform cleanups
-		// after the manager stops then its usage might be unsafe.
-		// LeaderElectionReleaseOnCancel: true,
+		Cache:                  cacheOptions,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

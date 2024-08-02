@@ -27,6 +27,16 @@ enableDbSecrets: true
 
 # additional arguments to operator
 args: []
+  # - metrics-bind-address=:8080
+  # - health-probe-bind-address=:8081
+  # - leader-elect=true
+  # - leader-election-id=axonops-developer-operator
+  # - watch-namespaces=default,one,two
+
+# additional environment variables to operator
+env: []
+  # - name: MY_ENV_VAR
+  #   value: "my value"
 
 environmentSecret: ""
 
