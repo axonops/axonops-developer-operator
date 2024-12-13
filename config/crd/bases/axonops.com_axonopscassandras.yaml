@@ -131,6 +131,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      pullPolicy:
+                        type: string
                       replicas:
                         description: Increase the number of replicas if desired from
                           the default, 1
@@ -232,6 +234,8 @@ spec:
                             description: Optional Storage Class name
                             type: string
                         type: object
+                      pullPolicy:
+                        type: string
                       resources:
                         description: ResourceRequirements describes the compute resource
                           requirements.
@@ -322,6 +326,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      pullPolicy:
+                        type: string
                       resources:
                         description: ResourceRequirements describes the compute resource
                           requirements.
@@ -432,6 +438,8 @@ spec:
                         description: Optional Storage Class name
                         type: string
                     type: object
+                  pullPolicy:
+                    type: string
                   replicas:
                     type: integer
                   resources:

@@ -31,8 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-const defaultCassandraImage = "registry.axonops.com/axonops-public/axonops-docker/cassandra"
-const defaultCassandraTag = "4.1"
+const defaultCassandraImage = "ghcr.io/axonops/cassandra"
+const defaultCassandraTag = "5.0.2"
 
 const cassandraHeadlessServiceTemplate = `
 apiVersion: v1
@@ -145,6 +145,7 @@ spec:
       containers:
       - name: cassandra
         image: {{ .Image }}
+        imagePullPolicy: {{ .PullPolicy }}
         ports:
         - containerPort: 9042
           name: cql
@@ -289,6 +290,7 @@ type CassandraConfig struct {
 	MemoryLimit   string
 	CpuRequest    string
 	MemoryRequest string
+	PullPolicy    string
 }
 
 func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
@@ -312,6 +314,7 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 		MemoryRequest: utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Requests.Memory().String(), "1Gi"),
 		CpuLimit:      utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Cpu().String(), "1000m"),
 		MemoryLimit:   utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Memory().String(), "2Gi"),
+		PullPolicy:    utils.ValueOrDefault(cfg.Spec.Cassandra.PullPolicy, "IfNotPresent"),
 	}
 
 	statefulSet := &appsv1.StatefulSet{}

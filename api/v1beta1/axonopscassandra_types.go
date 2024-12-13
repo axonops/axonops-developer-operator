@@ -69,6 +69,7 @@ type AxonOpsCassandraCluster struct {
 	Labels           map[string]string           `json:"labels,omitempty"`
 	Env              []EnvVars                   `json:"env,omitempty"`
 	Resources        corev1.ResourceRequirements `json:"resources,omitempty"`
+	PullPolicy       string                      `json:"pullPolicy,omitempty"`
 }
 
 // AxonOpsDashboard defines the dashboard
@@ -82,6 +83,7 @@ type AxonOpsDashboard struct {
 	Labels      map[string]string           `json:"labels,omitempty"`
 	Env         []EnvVars                   `json:"env,omitempty"`
 	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
+	PullPolicy  string                      `json:"pullPolicy,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
@@ -92,6 +94,7 @@ type AxonOpsServer struct {
 	Labels      map[string]string           `json:"labels,omitempty"`
 	Env         []EnvVars                   `json:"env,omitempty"`
 	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
+	PullPolicy  string                      `json:"pullPolicy,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard
@@ -103,6 +106,7 @@ type Elasticsearch struct {
 	ClusterName      string                      `json:"clusterName,omitempty"`
 	Env              []EnvVars                   `json:"env,omitempty"`
 	Resources        corev1.ResourceRequirements `json:"resources,omitempty"`
+	PullPolicy       string                      `json:"pullPolicy,omitempty"`
 }
 
 // AxonOpsCassandraCluster defines the Apache Cassandra cluster to install
