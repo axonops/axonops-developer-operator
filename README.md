@@ -99,4 +99,3 @@ spec:
         hosts:
           - axonops-dev.mydomain.com
 ```
-
