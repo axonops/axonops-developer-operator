@@ -20,3 +20,6 @@ spec:
       cassandraMetricsCluster:
         replicas: 2
         dc: axonops2
+        persistentVolume:
+          size: 2Gi
+          storageClass: local-path
