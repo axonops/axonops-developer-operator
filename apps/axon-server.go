@@ -155,6 +155,16 @@ type ServerConfig struct {
 }
 
 func GenerateServerConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
+	if cfg.Spec.AxonOps.Server.CassandraMetricsEnabled {
+		cfg.Spec.AxonOps.Server.Env = append(cfg.Spec.AxonOps.Server.Env, cassandraaxonopscomv1beta1.EnvVars{
+			Name:  "CQL_HOSTS",
+			Value: "ca-metrics-" + cfg.GetName(),
+		})
+		cfg.Spec.AxonOps.Server.Env = append(cfg.Spec.AxonOps.Server.Env, cassandraaxonopscomv1beta1.EnvVars{
+			Name:  "CQL_LOCAL_DC",
+			Value: "axonops1",
+		})
+	}
 	config := ServerConfig{
 		Name:      cfg.GetName(),
 		Namespace: cfg.GetNamespace(),

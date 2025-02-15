@@ -62,6 +62,7 @@ type AxonOpsCassandraCluster struct {
 	Image            ContainerImage              `json:"image,omitempty"`
 	Replicas         int                         `json:"replicas,omitempty"`
 	ClusterName      string                      `json:"clusterName,omitempty"`
+	DC               string                      `json:"dc,omitempty"`
 	PersistentVolume PersistentVolumeSpec        `json:"persistentVolume,omitempty"`
 	JavaOpts         string                      `json:"javaOpts,omitempty"`
 	HeapSize         string                      `json:"heapSize,omitempty"`
@@ -89,12 +90,14 @@ type AxonOpsDashboard struct {
 // AxonOpsServer defines the dashboard
 type AxonOpsServer struct {
 	// Container image definition with repository and tag
-	Image       ContainerImage              `json:"image,omitempty"`
-	Annotations map[string]string           `json:"annotations,omitempty"`
-	Labels      map[string]string           `json:"labels,omitempty"`
-	Env         []EnvVars                   `json:"env,omitempty"`
-	Resources   corev1.ResourceRequirements `json:"resources,omitempty"`
-	PullPolicy  string                      `json:"pullPolicy,omitempty"`
+	Image                   ContainerImage              `json:"image,omitempty"`
+	Annotations             map[string]string           `json:"annotations,omitempty"`
+	Labels                  map[string]string           `json:"labels,omitempty"`
+	Env                     []EnvVars                   `json:"env,omitempty"`
+	Resources               corev1.ResourceRequirements `json:"resources,omitempty"`
+	PullPolicy              string                      `json:"pullPolicy,omitempty"`
+	CassandraMetricsEnabled bool                        `json:"cassandraMetricsEnabled,omitempty"`
+	CassandraMetricsCluster AxonOpsCassandraCluster     `json:"cassandraMetricsCluster,omitempty"`
 }
 
 // AxonOpsServer defines the dashboard

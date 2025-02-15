@@ -90,6 +90,10 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			"ds-" + thisClusterName,
 		}
 
+		if axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsEnabled {
+			statefulSetList = append(statefulSetList, "ca-metrics-"+thisClusterName)
+		}
+
 		// The object is being deleted
 		if utils.ContainsString(axonopsCassCluster.GetFinalizers(), axonopsFinalizerName) {
 			// our finalizer is present, so lets handle any external dependency
@@ -268,6 +272,80 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	/*
 		STEP 3:
+		Create the Cassandra STS for metrics if enabled
+	*/
+
+	if axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsEnabled {
+		var cassandraMetricsStatefulSetCurrent *appsv1.StatefulSet
+		var cassandraMetricsStatefulSet *appsv1.StatefulSet
+		cassandraMetricsStatefulSetCurrent, err = r.getSts("ca-metrics-"+thisClusterName, thisClusterNamespace)
+
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, err
+		}
+
+		/* Create the cassandra search STS */
+		if axonopsCassCluster.Spec.Cassandra.DC == "" {
+			axonopsCassCluster.Spec.Cassandra.DC = "axonops1"
+		}
+		cassandraMetricsStatefulSet, err = apps.GenerateCassandraConfig(
+			"metrics-"+axonopsCassCluster.GetName(),
+			axonopsCassCluster.GetNamespace(),
+			axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsCluster.PersistentVolume.Size,
+			axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsCluster.PersistentVolume.StorageClass,
+			axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsCluster)
+		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the Cassandra configuration for the metrics storage: "+err.Error())
+			return ctrl.Result{}, err
+		}
+
+		if cassandraMetricsStatefulSetCurrent == nil {
+			err = r.Create(ctx, cassandraMetricsStatefulSet)
+			if err != nil {
+				//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Cassandra Statefulset: "+err.Error())
+				return ctrl.Result{}, err
+			}
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Cassandra sts created successfully")
+		} else {
+			/* Update the cassandra search STS */
+			err = r.Update(ctx, cassandraMetricsStatefulSet)
+			if err != nil {
+				r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the Cassandra Statefulset: "+err.Error())
+				return ctrl.Result{}, err
+			}
+		}
+		var cassandraSvc *corev1.Service
+		var cassandraSvcCurrent *corev1.Service
+		cassandraSvcCurrent, err = r.getService("ca-"+thisClusterName, thisClusterNamespace)
+		if client.IgnoreNotFound(err) != nil {
+			return ctrl.Result{}, err
+		}
+		/* Create the cassandra service */
+		cassandraSvc, err = apps.GenerateCassandraServiceConfig("metrics-"+axonopsCassCluster.GetName(),
+			axonopsCassCluster.GetNamespace(),
+			axonopsCassCluster.Spec.Cassandra.Labels,
+			axonopsCassCluster.Spec.Cassandra.Annotations)
+		if err != nil {
+			r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Cassandra service: "+err.Error())
+			return ctrl.Result{}, err
+		}
+		if cassandraSvcCurrent == nil {
+			err = r.Create(ctx, cassandraSvc)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			/* Update the cassandra search service */
+			err = r.Update(ctx, cassandraSvc)
+			if err != nil {
+				r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to update the Cassandra service: "+err.Error())
+				return ctrl.Result{}, err
+			}
+			//r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Created", "Cassandra service updated successfully")
+		}
+	}
+	/*
+		STEP 4:
 		Create the AxonServer Config
 	*/
 
@@ -326,7 +404,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	/*
-		STEP 4:
+		STEP 5:
 		Create the Cassandra STS
 	*/
 
@@ -339,7 +417,12 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	/* Create the cassandra search STS */
-	cassandraStatefulSet, err = apps.GenerateCassandraConfig(axonopsCassCluster)
+	cassandraStatefulSet, err = apps.GenerateCassandraConfig(
+		axonopsCassCluster.GetName(),
+		axonopsCassCluster.GetNamespace(),
+		axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsCluster.PersistentVolume.Size,
+		axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsCluster.PersistentVolume.StorageClass,
+		axonopsCassCluster.Spec.Cassandra)
 	if err != nil {
 		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to parse the Cassandra configuration: "+err.Error())
 		return ctrl.Result{}, err
@@ -368,8 +451,10 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if client.IgnoreNotFound(err) != nil {
 		return ctrl.Result{}, err
 	}
-	/* Create the cassandra search service */
-	cassandraSvc, err = apps.GenerateCassandraServiceConfig(axonopsCassCluster)
+	/* Create the cassandra service */
+	cassandraSvc, err = apps.GenerateCassandraServiceConfig(axonopsCassCluster.GetName(), axonopsCassCluster.GetNamespace(),
+		axonopsCassCluster.Spec.Cassandra.Labels,
+		axonopsCassCluster.Spec.Cassandra.Annotations)
 	if err != nil {
 		r.Recorder.Event(&axonopsCassCluster, corev1.EventTypeNormal, "Failed", "Failed to create the Cassandra service: "+err.Error())
 		return ctrl.Result{}, err
