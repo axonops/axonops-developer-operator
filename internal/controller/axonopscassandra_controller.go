@@ -91,7 +91,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		if axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsEnabled {
-			statefulSetList = append(statefulSetList, "ca-metrics-"+thisClusterName)
+			statefulSetList = append(statefulSetList, "ca-mt-"+thisClusterName)
 		}
 
 		// The object is being deleted
@@ -278,7 +278,7 @@ func (r *AxonOpsCassandraReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if axonopsCassCluster.Spec.AxonOps.Server.CassandraMetricsEnabled {
 		var cassandraMetricsStatefulSetCurrent *appsv1.StatefulSet
 		var cassandraMetricsStatefulSet *appsv1.StatefulSet
-		cassandraMetricsStatefulSetCurrent, err = r.getSts("ca-metrics-"+thisClusterName, thisClusterNamespace)
+		cassandraMetricsStatefulSetCurrent, err = r.getSts("ca-mt-"+thisClusterName, thisClusterNamespace)
 
 		if client.IgnoreNotFound(err) != nil {
 			return ctrl.Result{}, err
