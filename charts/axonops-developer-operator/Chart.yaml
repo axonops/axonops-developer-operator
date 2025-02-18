@@ -11,10 +11,10 @@ kubeVersion: ">= 1.24.0-0"
 type: application
 
 # Chart version
-version: 0.2.1
+version: 0.3.0
 
 # Latest container tag
-appVersion: v0.1.0
+appVersion: v0.2.0
 
 maintainers:
 - email: info@axonops.com
