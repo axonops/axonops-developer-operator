@@ -1,0 +1,25 @@
+apiVersion: axonops.com/v1beta1
+kind: AxonOpsCassandra
+metadata:
+  labels:
+    app.kubernetes.io/name: axonops-developer-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: axonopscassandra-sample
+  namespace: axonops-dev
+spec:
+  cassandra:
+    replicas: 1
+    clusterName: "my-dev-env"
+  axonops:
+    elasticsearch:
+      persistentVolume:
+        size: 2Gi
+        storageClass: local-path
+    server:
+      cassandraMetricsEnabled: true
+      cassandraMetricsCluster:
+        replicas: 2
+        dc: axonops2
+        persistentVolume:
+          size: 2Gi
+          storageClass: local-path

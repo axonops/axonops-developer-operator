@@ -163,7 +163,7 @@ spec:
         - name: CASSANDRA_ENDPOINT_SNITCH
           value: GossipingPropertyFileSnitch
         - name: CASSANDRA_DC
-          value: dc1
+          value: {{ .DC }}
         - name: CASSANDRA_RACK
           value: rack1
         - name: CASSANDRA_BROADCAST_RPC_ADDRESS
@@ -279,6 +279,7 @@ type CassandraConfig struct {
 	Replicas      int
 	Image         string
 	ClusterName   string
+	DC            string
 	JavaOpts      string
 	HeapSize      string
 	StorageSize   string
@@ -293,28 +294,29 @@ type CassandraConfig struct {
 	PullPolicy    string
 }
 
-func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*appsv1.StatefulSet, error) {
+func GenerateCassandraConfig(name string, namespace string, storageSize string, storageClass string, cfg cassandraaxonopscomv1beta1.AxonOpsCassandraCluster) (*appsv1.StatefulSet, error) {
 	config := CassandraConfig{
-		Name:      cfg.GetName(),
-		Namespace: cfg.GetNamespace(),
-		Replicas:  utils.ValueOrDefaultInt(cfg.Spec.Cassandra.Replicas, 1),
+		Name:      name,
+		Namespace: namespace,
+		Replicas:  utils.ValueOrDefaultInt(cfg.Replicas, 1),
 		Image: fmt.Sprintf("%s:%s",
-			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Repository, defaultCassandraImage),
-			utils.ValueOrDefault(cfg.Spec.Cassandra.Image.Tag, defaultCassandraTag),
+			utils.ValueOrDefault(cfg.Image.Repository, defaultCassandraImage),
+			utils.ValueOrDefault(cfg.Image.Tag, defaultCassandraTag),
 		),
-		ClusterName:   utils.ValueOrDefault(cfg.Spec.Cassandra.ClusterName, cfg.GetName()),
-		JavaOpts:      utils.ValueOrDefault(cfg.Spec.Cassandra.JavaOpts, "-Xms512m -Xmx512m"),
-		StorageSize:   utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.Size, ""),
-		StorageClass:  utils.ValueOrDefault(cfg.Spec.AxonOps.Elasticsearch.PersistentVolume.StorageClass, ""),
-		HeapSize:      utils.ValueOrDefault(cfg.Spec.Cassandra.HeapSize, "512M"),
-		Labels:        cfg.Spec.Cassandra.Labels,
-		Annotations:   cfg.Spec.Cassandra.Annotations,
-		Env:           cfg.Spec.Cassandra.Env,
-		CpuRequest:    utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Requests.Cpu().String(), "500m"),
-		MemoryRequest: utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Requests.Memory().String(), "1Gi"),
-		CpuLimit:      utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Cpu().String(), "1000m"),
-		MemoryLimit:   utils.ValueOrDefault(cfg.Spec.Cassandra.Resources.Limits.Memory().String(), "2Gi"),
-		PullPolicy:    utils.ValueOrDefault(cfg.Spec.Cassandra.PullPolicy, "IfNotPresent"),
+		ClusterName:   utils.ValueOrDefault(cfg.ClusterName, name),
+		DC:            utils.ValueOrDefault(cfg.DC, "dc1"),
+		JavaOpts:      utils.ValueOrDefault(cfg.JavaOpts, "-Xms512m -Xmx512m"),
+		StorageSize:   utils.ValueOrDefault(storageSize, ""),
+		StorageClass:  utils.ValueOrDefault(storageClass, ""),
+		HeapSize:      utils.ValueOrDefault(cfg.HeapSize, "512M"),
+		Labels:        cfg.Labels,
+		Annotations:   cfg.Annotations,
+		Env:           cfg.Env,
+		CpuRequest:    utils.ValueOrDefault(cfg.Resources.Requests.Cpu().String(), "500m"),
+		MemoryRequest: utils.ValueOrDefault(cfg.Resources.Requests.Memory().String(), "1Gi"),
+		CpuLimit:      utils.ValueOrDefault(cfg.Resources.Limits.Cpu().String(), "1000m"),
+		MemoryLimit:   utils.ValueOrDefault(cfg.Resources.Limits.Memory().String(), "2Gi"),
+		PullPolicy:    utils.ValueOrDefault(cfg.PullPolicy, "IfNotPresent"),
 	}
 
 	statefulSet := &appsv1.StatefulSet{}
@@ -342,12 +344,12 @@ func GenerateCassandraConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*
 	return statefulSet, nil
 }
 
-func GenerateCassandraServiceConfig(cfg cassandraaxonopscomv1beta1.AxonOpsCassandra) (*corev1.Service, error) {
+func GenerateCassandraServiceConfig(name string, namespace string, labels map[string]string, annonations map[string]string) (*corev1.Service, error) {
 	config := CassandraServiceConfig{
-		Name:        cfg.GetName(),
-		Namespace:   cfg.GetNamespace(),
-		Labels:      cfg.Spec.Cassandra.Labels,
-		Annotations: cfg.Spec.Cassandra.Annotations,
+		Name:        name,
+		Namespace:   namespace,
+		Labels:      labels,
+		Annotations: annonations,
 	}
 
 	svc := &corev1.Service{}
@@ -380,8 +382,8 @@ func GenerateCassandraHeadlessServiceConfig(cfg cassandraaxonopscomv1beta1.AxonO
 	config := CassandraServiceConfig{
 		Name:        cfg.GetName(),
 		Namespace:   cfg.GetNamespace(),
-		Labels:      cfg.Spec.Cassandra.Labels,
-		Annotations: cfg.Spec.Cassandra.Annotations,
+		Labels:      cfg.Labels,
+		Annotations: cfg.Annotations,
 	}
 
 	svc := &corev1.Service{}
